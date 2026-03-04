@@ -104,7 +104,6 @@ class BufferedGitBlobDataIterator(BufferedAsyncIterator):
         github_client: GithubClient,
         owner: str,
         repo: str,
-        loop: asyncio.AbstractEventLoop,
         buffer_size: int,
         verbose: bool = False,
         timeout: Optional[int] = 5,
@@ -119,7 +118,6 @@ class BufferedGitBlobDataIterator(BufferedAsyncIterator):
             - github_client (GithubClient): Github client.
             - owner (str): Owner of the repository.
             - repo (str): Name of the repository.
-            - loop (asyncio.AbstractEventLoop): Event loop.
             - verbose (bool): Whether to print verbose messages.
             - buffer_size (int): Size of the buffer.
             - timeout (int or None): Timeout for the requests to the Github API. Default is 5.
@@ -134,10 +132,6 @@ class BufferedGitBlobDataIterator(BufferedAsyncIterator):
         self._verbose = verbose
         self._timeout = timeout
         self._retries = retries
-        if loop is None:
-            loop = asyncio.get_event_loop()
-            if loop is None:
-                raise ValueError("No event loop found")
 
     async def _fill_buffer(self) -> None:
         """
