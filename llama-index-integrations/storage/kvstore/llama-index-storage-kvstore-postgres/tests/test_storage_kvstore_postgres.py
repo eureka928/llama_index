@@ -332,3 +332,111 @@ def test_schema_name_with_special_characters():
 
         executed_statement = execute_calls[0][0][0]
         assert isinstance(executed_statement, CreateSchema)
+
+
+@pytest.mark.skipif(
+    no_packages, reason="asyncpg, pscopg2-binary and sqlalchemy not installed"
+)
+def test_create_engine_kwargs_passed_to_engines():
+    """Verify create_engine_kwargs are forwarded to both sync and async engines."""
+    import sqlalchemy
+
+    mock_engine = MagicMock()
+    mock_async_engine = MagicMock()
+
+    engine_kwargs = {
+        "pool_size": 10,
+        "max_overflow": 20,
+        "pool_pre_ping": True,
+    }
+
+    with (
+        patch.object(
+            sqlalchemy, "create_engine", return_value=mock_engine
+        ) as mock_create_engine,
+        patch.object(
+            sqlalchemy.ext.asyncio,
+            "create_async_engine",
+            return_value=mock_async_engine,
+        ) as mock_create_async_engine,
+        patch("sqlalchemy.orm.sessionmaker"),
+    ):
+        pgstore = PostgresKVStore(
+            table_name="test_table",
+            connection_string="postgresql://user:pass@localhost/db",
+            async_connection_string="postgresql+asyncpg://user:pass@localhost/db",
+            perform_setup=False,
+            create_engine_kwargs=engine_kwargs,
+        )
+        pgstore._connect()
+
+        mock_create_engine.assert_called_once_with(
+            "postgresql://user:pass@localhost/db",
+            echo=False,
+            pool_size=10,
+            max_overflow=20,
+            pool_pre_ping=True,
+        )
+        mock_create_async_engine.assert_called_once_with(
+            "postgresql+asyncpg://user:pass@localhost/db",
+            pool_size=10,
+            max_overflow=20,
+            pool_pre_ping=True,
+        )
+
+
+@pytest.mark.skipif(
+    no_packages, reason="asyncpg, pscopg2-binary and sqlalchemy not installed"
+)
+def test_create_engine_kwargs_default_empty():
+    """Verify create_engine_kwargs defaults to empty dict when not provided."""
+    pgstore = PostgresKVStore(
+        table_name="test_table",
+        connection_string="postgresql://user:pass@localhost/db",
+        async_connection_string="postgresql+asyncpg://user:pass@localhost/db",
+        perform_setup=False,
+    )
+    assert pgstore.create_engine_kwargs == {}
+
+
+@pytest.mark.skipif(
+    no_packages, reason="asyncpg, pscopg2-binary and sqlalchemy not installed"
+)
+def test_from_uri_forwards_create_engine_kwargs():
+    """Verify from_uri forwards create_engine_kwargs to constructor."""
+    engine_kwargs = {"pool_size": 5, "connect_args": {"timeout": 60}}
+
+    with patch.object(PostgresKVStore, "__init__", return_value=None) as mock_init:
+        PostgresKVStore.from_uri(
+            uri="postgresql://user:pass@localhost:5432/db",
+            table_name="test_table",
+            create_engine_kwargs=engine_kwargs,
+        )
+
+        # from_uri calls from_params which calls __init__
+        mock_init.assert_called_once()
+        call_kwargs = mock_init.call_args
+        assert call_kwargs.kwargs.get("create_engine_kwargs") == engine_kwargs
+
+
+@pytest.mark.skipif(
+    no_packages, reason="asyncpg, pscopg2-binary and sqlalchemy not installed"
+)
+def test_from_params_forwards_create_engine_kwargs():
+    """Verify from_params forwards create_engine_kwargs to constructor."""
+    engine_kwargs = {"pool_size": 5}
+
+    with patch.object(PostgresKVStore, "__init__", return_value=None) as mock_init:
+        PostgresKVStore.from_params(
+            host="localhost",
+            port="5432",
+            database="db",
+            user="user",
+            password="pass",
+            table_name="test_table",
+            create_engine_kwargs=engine_kwargs,
+        )
+
+        mock_init.assert_called_once()
+        call_kwargs = mock_init.call_args
+        assert call_kwargs.kwargs.get("create_engine_kwargs") == engine_kwargs

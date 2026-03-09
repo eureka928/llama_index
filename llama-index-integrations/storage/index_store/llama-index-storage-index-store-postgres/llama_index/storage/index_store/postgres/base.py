@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from llama_index.core.storage.index_store.keyval_index_store import KVIndexStore
 from llama_index.storage.kvstore.postgres import PostgresKVStore
@@ -36,6 +36,7 @@ class PostgresIndexStore(KVIndexStore):
         debug: bool = False,
         use_jsonb: bool = False,
         collection_suffix: Optional[str] = None,
+        create_engine_kwargs: Optional[Dict[str, Any]] = None,
     ) -> "PostgresIndexStore":
         """Load a PostgresIndexStore from a PostgresURI."""
         postgres_kvstore = PostgresKVStore.from_uri(
@@ -45,6 +46,7 @@ class PostgresIndexStore(KVIndexStore):
             perform_setup=perform_setup,
             debug=debug,
             use_jsonb=use_jsonb,
+            create_engine_kwargs=create_engine_kwargs,
         )
         return cls(postgres_kvstore, namespace, collection_suffix)
 
@@ -63,6 +65,7 @@ class PostgresIndexStore(KVIndexStore):
         debug: bool = False,
         use_jsonb: bool = False,
         collection_suffix: Optional[str] = None,
+        create_engine_kwargs: Optional[Dict[str, Any]] = None,
     ) -> "PostgresIndexStore":
         """Load a PostgresIndexStore from a Postgres host and port."""
         postgres_kvstore = PostgresKVStore.from_params(
@@ -76,5 +79,6 @@ class PostgresIndexStore(KVIndexStore):
             perform_setup=perform_setup,
             debug=debug,
             use_jsonb=use_jsonb,
+            create_engine_kwargs=create_engine_kwargs,
         )
         return cls(postgres_kvstore, namespace, collection_suffix)
